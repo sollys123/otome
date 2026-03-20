@@ -1,336 +1,418 @@
-const ratingCategories = ['综合', '剧情', '感情', '文笔', '人设', '趣味性', '深度'];
+const games = [];
 
-const bangumiFixtures = {
-  game: [
-    {
-      title: 'Collar×Malice',
-      subtitle: '悬疑 × 都会 × 乙女游戏',
-      image:
-        'https://images.unsplash.com/photo-1512149673953-1e251807ec4a?auto=format&fit=crop&w=600&q=80',
-      url: 'https://bgm.tv/subject_search/Collar%20Malice?cat=4',
-    },
-    {
-      title: 'Cupid Parasite',
-      subtitle: '恋爱喜剧 × 时髦霓虹',
-      image:
-        'https://images.unsplash.com/photo-1515879218367-8466d910aaa4?auto=format&fit=crop&w=600&q=80',
-      url: 'https://bgm.tv/subject_search/Cupid%20Parasite?cat=4',
-    },
-    {
-      title: 'Code:Realize',
-      subtitle: '蒸汽朋克 × 冒险',
-      image:
-        'https://images.unsplash.com/photo-1498050108023-c5249f4df085?auto=format&fit=crop&w=600&q=80',
-      url: 'https://bgm.tv/subject_search/Code%20Realize?cat=4',
-    },
-  ],
-  character: [
-    {
-      title: '笹塚尊',
-      subtitle: 'Collar×Malice',
-      image:
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80',
-      url: 'https://bgm.tv/character?search=%E7%AC%B9%E5%A1%9A%E5%B0%8A',
-    },
-    {
-      title: '白石景之',
-      subtitle: 'Collar×Malice',
-      image:
-        'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?auto=format&fit=crop&w=500&q=80',
-      url: 'https://bgm.tv/character?search=%E7%99%BD%E7%9F%B3%E6%99%AF%E4%B9%8B',
-    },
-    {
-      title: 'Gill Lovecraft',
-      subtitle: 'Cupid Parasite',
-      image:
-        'https://images.unsplash.com/photo-1507591064344-4c6ce005b128?auto=format&fit=crop&w=500&q=80',
-      url: 'https://bgm.tv/character?search=Gill%20Lovecraft',
-    },
-  ],
-  avatar: [
-    {
-      title: '糖果粉头像',
-      subtitle: '可作为站点头像示意',
-      image:
-        'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=500&q=80',
-      url: 'https://bgm.tv',
-    },
-    {
-      title: '紫雾头像',
-      subtitle: '轻透明氛围',
-      image:
-        'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=500&q=80',
-      url: 'https://bgm.tv',
-    },
-  ],
-};
-
-const gameTemplate = document.querySelector('#gameTemplate');
-const characterTemplate = document.querySelector('#characterTemplate');
 const gamesContainer = document.querySelector('#gamesContainer');
-const bgmModal = document.querySelector('#bgmModal');
-const bgmResults = document.querySelector('#bgmResults');
-const bgmSearchInput = document.querySelector('#bgmSearchInput');
-const bgmSearchLink = document.querySelector('#bgmSearchLink');
-const uploadFallback = document.querySelector('#uploadFallback');
-const bgmFallbackUpload = document.querySelector('#bgmFallbackUpload');
-const modalTitle = document.querySelector('#modalTitle');
+const detailView = document.querySelector('#detailView');
+const libraryView = document.querySelector('#libraryView');
+const librarySection = document.querySelector('#librarySection');
+const addGameButton = document.querySelector('#addGameButton');
+const heroAddGame = document.querySelector('#heroAddGame');
+const jumpToLibrary = document.querySelector('#jumpToLibrary');
 
-let currentPickerContext = null;
+let activeGameId = null;
+let activeRouteId = null;
 
-function createStars(container) {
-  ratingCategories.forEach((category) => {
-    const item = document.createElement('div');
-    item.className = 'rating-card';
-
-    const label = document.createElement('div');
-    label.className = 'rating-label';
-    label.textContent = category;
-
-    const stars = document.createElement('div');
-    stars.className = 'stars';
-
-    for (let i = 1; i <= 5; i += 1) {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'star-button';
-      button.textContent = '★';
-      button.dataset.value = String(i);
-      button.addEventListener('click', () => {
-        [...stars.children].forEach((star, index) => {
-          star.classList.toggle('active', index < i);
-        });
-      });
-      stars.appendChild(button);
-    }
-
-    item.append(label, stars);
-    container.appendChild(item);
-  });
+function uid(prefix) {
+  return `${prefix}-${Math.random().toString(36).slice(2, 10)}`;
 }
 
-function previewImage(file, img) {
-  const reader = new FileReader();
-  reader.onload = (event) => {
-    img.src = event.target?.result;
+function createGame() {
+  return {
+    id: uid('game'),
+    title: '',
+    summary: '',
+    score: '',
+    tags: '',
+    repo: '',
+    link: '',
+    cover: '',
+    routes: [],
   };
+}
+
+function createRoute() {
+  return {
+    id: uid('route'),
+    name: '',
+    summary: '',
+    score: '',
+    review: '',
+    image: '',
+  };
+}
+
+function findGame(gameId) {
+  return games.find((game) => game.id === gameId);
+}
+
+function readFileAsDataUrl(file, callback) {
+  const reader = new FileReader();
+  reader.onload = () => callback(reader.result);
   reader.readAsDataURL(file);
 }
 
-function bindSingleUpload(input, img) {
-  input.addEventListener('change', (event) => {
-    const [file] = event.target.files || [];
-    if (file) previewImage(file, img);
-  });
+function escapeHtml(value = '') {
+  return value
+    .replaceAll('&', '&amp;')
+    .replaceAll('<', '&lt;')
+    .replaceAll('>', '&gt;')
+    .replaceAll('"', '&quot;')
+    .replaceAll("'", '&#39;');
 }
 
-function createGalleryPreview(file) {
-  const card = document.createElement('div');
-  card.className = 'preview-card';
-
-  const thumb = document.createElement('div');
-  thumb.className = 'preview-thumb';
-  const image = document.createElement('img');
-  image.className = 'preview-image';
-  image.alt = file.name;
-  thumb.appendChild(image);
-
-  const meta = document.createElement('div');
-  meta.className = 'preview-meta';
-  const title = document.createElement('strong');
-  title.textContent = file.name;
-  const input = document.createElement('textarea');
-  input.className = 'comment-input';
-  input.rows = 3;
-  input.placeholder = '给这张图写评论、记录名场面或台词感想。';
-  meta.append(title, input);
-
-  card.append(thumb, meta);
-  previewImage(file, image);
-  return card;
+function getGameMeta(game) {
+  const items = [];
+  if (game.score.trim()) items.push(`评分 ${game.score.trim()}`);
+  if (game.tags.trim()) items.push(game.tags.trim());
+  return items;
 }
 
-function bindGalleryUpload(input, list) {
-  input.addEventListener('change', (event) => {
-    const files = [...(event.target.files || [])];
-    if (!files.length) return;
-    list.classList.remove('empty-state');
-    if (list.dataset.placeholder === 'true') list.innerHTML = '';
-    list.dataset.placeholder = 'false';
-    files.forEach((file) => list.appendChild(createGalleryPreview(file)));
-  });
-}
+function renderLibrary() {
+  if (!games.length) {
+    gamesContainer.innerHTML = `
+      <div class="empty-state library-empty">
+        <h3>还没有添加游戏</h3>
+        <p>先从一部想记录的作品开始，慢慢把收藏整理起来。</p>
+        <button class="primary-button" data-action="create-from-empty">新增游戏</button>
+      </div>
+    `;
 
-function openPicker(type, context) {
-  currentPickerContext = { type, context };
-  modalTitle.textContent =
-    type === 'game' ? '从 Bangumi 游戏库选择封面' : type === 'character' ? '从 Bangumi 角色库选择立绘' : '选择站点头像';
-  bgmSearchInput.value = '';
-  bgmSearchLink.href =
-    type === 'character'
-      ? 'https://bgm.tv/character'
-      : type === 'game'
-        ? 'https://bgm.tv/subject_search?cat=4'
-        : 'https://bgm.tv';
-  renderBangumiResults(type);
-  switchPickerSource('bangumi');
-  bgmModal.showModal();
-}
-
-function switchPickerSource(source) {
-  document.querySelectorAll('.tab-button').forEach((button) => {
-    button.classList.toggle('active', button.dataset.source === source);
-  });
-  bgmResults.classList.toggle('hidden', source !== 'bangumi');
-  uploadFallback.classList.toggle('hidden', source !== 'upload');
-}
-
-function applyBangumiSelection(item) {
-  if (!currentPickerContext) return;
-
-  const { type, context } = currentPickerContext;
-  if (type === 'avatar') {
-    context.image.src = item.image;
-  } else {
-    context.image.src = item.image;
-    context.link.href = item.url;
-    context.link.textContent = `查看 Bangumi ${type === 'game' ? '条目' : '角色条目'}`;
-    if (context.titleInput && !context.titleInput.value.trim()) {
-      context.titleInput.value = item.title;
-    }
-  }
-  bgmModal.close();
-}
-
-function renderBangumiResults(type, keyword = '') {
-  bgmResults.innerHTML = '';
-  const pool = bangumiFixtures[type] || [];
-  const filtered = pool.filter((item) => `${item.title} ${item.subtitle}`.toLowerCase().includes(keyword.toLowerCase()));
-
-  if (!filtered.length) {
-    const empty = document.createElement('div');
-    empty.className = 'empty-state';
-    empty.textContent = '没有匹配到示例结果。你仍然可以点击上方按钮打开 Bangumi 搜索，或切换到自己上传。';
-    bgmResults.appendChild(empty);
+    gamesContainer.querySelector('[data-action="create-from-empty"]').addEventListener('click', handleCreateGame);
     return;
   }
 
-  filtered.forEach((item) => {
-    const card = document.createElement('div');
-    card.className = 'bgm-result-card';
+  gamesContainer.innerHTML = games
+    .map((game) => {
+      const title = game.title.trim() || '未命名游戏';
+      const summary = game.summary.trim() || '还没有写简介。';
+      const meta = getGameMeta(game)
+        .map((item) => `<span class="meta-pill">${escapeHtml(item)}</span>`)
+        .join('');
 
-    const image = document.createElement('img');
-    image.className = 'bgm-result-thumb';
-    image.src = item.image;
-    image.alt = item.title;
+      return `
+        <article class="library-card glass-inner" data-game-id="${game.id}">
+          <button class="library-card-button" data-action="open-game" data-game-id="${game.id}">
+            ${
+              game.cover
+                ? `<img class="library-cover" src="${game.cover}" alt="${escapeHtml(title)} 封面" />`
+                : `<div class="library-cover placeholder-cover"><span>未设置封面</span></div>`
+            }
+            <div class="library-card-body">
+              <h3>${escapeHtml(title)}</h3>
+              <p>${escapeHtml(summary)}</p>
+              <div class="library-meta">${meta || '<span class="meta-pill subtle">待补充</span>'}</div>
+            </div>
+          </button>
+        </article>
+      `;
+    })
+    .join('');
 
-    const text = document.createElement('div');
-    text.innerHTML = `<strong>${item.title}</strong><p class="muted">${item.subtitle}</p>`;
-
-    const action = document.createElement('button');
-    action.type = 'button';
-    action.className = 'primary-button small';
-    action.textContent = '选择';
-    action.addEventListener('click', () => applyBangumiSelection(item));
-
-    card.append(image, text, action);
-    bgmResults.appendChild(card);
+  gamesContainer.querySelectorAll('[data-action="open-game"]').forEach((button) => {
+    button.addEventListener('click', () => openGameDetail(button.dataset.gameId));
   });
 }
 
-function createCharacterCard(name = '') {
-  const fragment = characterTemplate.content.cloneNode(true);
-  const card = fragment.querySelector('.character-card');
-  const image = fragment.querySelector('.character-image');
-  const link = fragment.querySelector('.bangumi-link');
-  const titleInput = fragment.querySelector('.character-name');
-  const ratings = fragment.querySelector('.character-ratings');
-  const uploadInput = fragment.querySelector('.character-upload');
-  const cgUpload = fragment.querySelector('.cg-upload');
-  const dialogueUpload = fragment.querySelector('.dialogue-upload');
-  const cgList = fragment.querySelector('.cg-list');
-  const dialogueList = fragment.querySelector('.dialogue-list');
-  const pickerButton = fragment.querySelector('[data-open-bgm]');
+function renderRouteDetail(game) {
+  const route = game.routes.find((item) => item.id === activeRouteId);
 
-  titleInput.value = name;
-  image.src = 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=500&q=80';
-  link.href = 'https://bgm.tv/character';
-  createStars(ratings);
-  bindSingleUpload(uploadInput, image);
-  bindGalleryUpload(cgUpload, cgList);
-  bindGalleryUpload(dialogueUpload, dialogueList);
-  pickerButton.addEventListener('click', () => openPicker('character', { image, link, titleInput }));
+  if (!route) {
+    return `
+      <div class="empty-state route-empty">
+        <h3>还没有选中角色路线</h3>
+        <p>新增一条路线后，或从上方卡片中选择一位角色查看详细记录。</p>
+      </div>
+    `;
+  }
 
-  return card;
+  return `
+    <section class="route-detail glass-inner">
+      <div class="route-detail-header">
+        <div>
+          <p class="eyebrow">Route</p>
+          <h3>${escapeHtml(route.name.trim() || '未命名路线')}</h3>
+        </div>
+        <label class="secondary-button upload-button-inline">
+          更换角色图
+          <input type="file" accept="image/*" data-action="upload-route-image" data-route-id="${route.id}" hidden />
+        </label>
+      </div>
+
+      <div class="route-detail-grid">
+        ${
+          route.image
+            ? `<img class="route-portrait" src="${route.image}" alt="${escapeHtml(route.name.trim() || '角色路线')} 图片" />`
+            : `<div class="route-portrait placeholder-cover"><span>未设置图片</span></div>`
+        }
+
+        <div class="form-grid compact">
+          <label>
+            <span>路线名称</span>
+            <input type="text" value="${escapeHtml(route.name)}" data-field="name" data-route-id="${route.id}" placeholder="例如：主线 / 角色名" />
+          </label>
+          <label>
+            <span>个人评分</span>
+            <input type="text" value="${escapeHtml(route.score)}" data-field="score" data-route-id="${route.id}" placeholder="例如：4.5 / 5" />
+          </label>
+          <label class="full-width">
+            <span>一句印象</span>
+            <input type="text" value="${escapeHtml(route.summary)}" data-field="summary" data-route-id="${route.id}" placeholder="写一句简短印象即可" />
+          </label>
+          <label class="full-width">
+            <span>路线感想</span>
+            <textarea rows="8" data-field="review" data-route-id="${route.id}" placeholder="记录你想留下的内容。">${escapeHtml(route.review)}</textarea>
+          </label>
+        </div>
+      </div>
+    </section>
+  `;
 }
 
-function createGameCard(seed = {}) {
-  const fragment = gameTemplate.content.cloneNode(true);
-  const card = fragment.querySelector('.game-card');
-  const image = fragment.querySelector('.game-cover');
-  const link = fragment.querySelector('.bangumi-link');
-  const titleInput = fragment.querySelector('.title-input');
-  const coverUpload = fragment.querySelector('.game-cover-upload');
-  const gameRatings = fragment.querySelector('.game-ratings');
-  const charactersList = fragment.querySelector('.characters-list');
-  const addCharacterButton = fragment.querySelector('.add-character');
-  const pickerButton = fragment.querySelector('[data-open-bgm]');
+function renderDetail() {
+  const game = findGame(activeGameId);
+  if (!game) {
+    detailView.classList.add('hidden');
+    libraryView.classList.remove('hidden');
+    return;
+  }
 
-  titleInput.value = seed.title || '';
-  image.src =
-    seed.image ||
-    'https://images.unsplash.com/photo-1512149673953-1e251807ec4a?auto=format&fit=crop&w=600&q=80';
-  link.href = seed.url || 'https://bgm.tv/subject_search?cat=4';
-  createStars(gameRatings);
-  bindSingleUpload(coverUpload, image);
-  pickerButton.addEventListener('click', () => openPicker('game', { image, link, titleInput }));
-  addCharacterButton.addEventListener('click', () => charactersList.appendChild(createCharacterCard()));
+  libraryView.classList.add('hidden');
+  detailView.classList.remove('hidden');
 
-  charactersList.appendChild(createCharacterCard('默认男主线路'));
-  return card;
-}
+  const routeCards = game.routes.length
+    ? game.routes
+        .map((route) => `
+          <button class="route-card ${route.id === activeRouteId ? 'is-active' : ''}" data-action="select-route" data-route-id="${route.id}">
+            ${
+              route.image
+                ? `<img class="route-card-thumb" src="${route.image}" alt="${escapeHtml(route.name.trim() || '角色路线')} 缩略图" />`
+                : `<div class="route-card-thumb placeholder-cover"><span>路线</span></div>`
+            }
+            <div class="route-card-body">
+              <strong>${escapeHtml(route.name.trim() || '未命名路线')}</strong>
+              <span>${escapeHtml(route.summary.trim() || '还没有写简介。')}</span>
+            </div>
+          </button>
+        `)
+        .join('')
+    : `
+      <div class="empty-state routes-empty">
+        <h3>还没有角色路线</h3>
+        <p>可以先添加一条路线，再继续补充角色评价。</p>
+      </div>
+    `;
 
-function boot() {
-  gamesContainer.appendChild(createGameCard(bangumiFixtures.game[0]));
+  detailView.innerHTML = `
+    <div class="detail-header">
+      <button class="secondary-button" data-action="back-to-library">返回游戏库</button>
+      <button class="secondary-button danger-button" data-action="remove-game">删除这部游戏</button>
+    </div>
 
-  document.querySelector('#addBlankGame').addEventListener('click', () => {
-    gamesContainer.appendChild(createGameCard());
+    <article class="detail-layout">
+      <section class="detail-main">
+        <div class="detail-cover-block glass-inner">
+          ${
+            game.cover
+              ? `<img class="detail-cover" src="${game.cover}" alt="${escapeHtml(game.title.trim() || '游戏')} 封面" />`
+              : `<div class="detail-cover placeholder-cover"><span>未设置封面</span></div>`
+          }
+          <label class="secondary-button upload-button-inline wide-button">
+            上传封面
+            <input type="file" accept="image/*" data-action="upload-game-cover" hidden />
+          </label>
+        </div>
+
+        <section class="glass-inner detail-form-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">Game</p>
+              <h2>${escapeHtml(game.title.trim() || '游戏详情')}</h2>
+            </div>
+          </div>
+
+          <div class="form-grid">
+            <label>
+              <span>游戏名</span>
+              <input type="text" value="${escapeHtml(game.title)}" data-field="title" placeholder="输入游戏名" />
+            </label>
+            <label>
+              <span>个人评分</span>
+              <input type="text" value="${escapeHtml(game.score)}" data-field="score" placeholder="例如：8.5 / 10" />
+            </label>
+            <label class="full-width">
+              <span>简短标签</span>
+              <input type="text" value="${escapeHtml(game.tags)}" data-field="tags" placeholder="例如：悬疑、共通线出色、最爱角色待定" />
+            </label>
+            <label class="full-width">
+              <span>一句介绍</span>
+              <input type="text" value="${escapeHtml(game.summary)}" data-field="summary" placeholder="写一句你愿意放在列表页的简介" />
+            </label>
+            <label class="full-width">
+              <span>Bangumi 链接</span>
+              <input type="url" value="${escapeHtml(game.link)}" data-field="link" placeholder="可选：贴上作品条目链接" />
+            </label>
+            <label class="full-width">
+              <span>观后感 / repo</span>
+              <textarea rows="8" data-field="repo" placeholder="记录你真正想留下的感受。">${escapeHtml(game.repo)}</textarea>
+            </label>
+          </div>
+
+          ${
+            game.link.trim()
+              ? `<a class="text-link" href="${escapeHtml(game.link)}" target="_blank" rel="noreferrer">打开作品链接</a>`
+              : ''
+          }
+        </section>
+      </section>
+
+      <aside class="detail-side">
+        <section class="glass-inner routes-panel">
+          <div class="section-heading compact-heading">
+            <div>
+              <p class="eyebrow">Routes</p>
+              <h3>角色路线</h3>
+            </div>
+            <button class="primary-button small-button" data-action="add-route">新增路线</button>
+          </div>
+          <div class="route-list">${routeCards}</div>
+        </section>
+
+        ${renderRouteDetail(game)}
+      </aside>
+    </article>
+  `;
+
+  detailView.querySelector('[data-action="back-to-library"]').addEventListener('click', closeDetail);
+  detailView.querySelector('[data-action="remove-game"]').addEventListener('click', () => removeGame(game.id));
+  detailView.querySelector('[data-action="add-route"]').addEventListener('click', () => addRoute(game.id));
+
+  detailView.querySelectorAll('.detail-form-panel [data-field]').forEach((field) => {
+    field.addEventListener('input', (event) => updateGameField(game.id, event.target.dataset.field, event.target.value));
   });
 
-  document.querySelector('#pickAvatarButton').addEventListener('click', () => {
-    openPicker('avatar', { image: document.querySelector('#siteAvatar') });
+  detailView.querySelectorAll('[data-action="select-route"]').forEach((button) => {
+    button.addEventListener('click', () => selectRoute(game.id, button.dataset.routeId));
   });
 
-  document.querySelector('#addBangumiGameButton').addEventListener('click', () => {
-    gamesContainer.appendChild(createGameCard());
-    const latest = gamesContainer.lastElementChild;
-    openPicker('game', {
-      image: latest.querySelector('.game-cover'),
-      link: latest.querySelector('.bangumi-link'),
-      titleInput: latest.querySelector('.title-input'),
+  detailView.querySelector('[data-action="upload-game-cover"]').addEventListener('change', (event) => {
+    const [file] = event.target.files || [];
+    if (!file) return;
+    readFileAsDataUrl(file, (result) => {
+      game.cover = result;
+      renderAll();
     });
   });
 
-  document.querySelector('#avatarUpload').addEventListener('change', (event) => {
-    const [file] = event.target.files || [];
-    if (file) previewImage(file, document.querySelector('#siteAvatar'));
+  detailView.querySelectorAll('[data-route-id][data-field]').forEach((field) => {
+    field.addEventListener('input', (event) => {
+      updateRouteField(game.id, event.target.dataset.routeId, event.target.dataset.field, event.target.value);
+    });
   });
 
-  document.querySelectorAll('.tab-button').forEach((button) => {
-    button.addEventListener('click', () => switchPickerSource(button.dataset.source));
-  });
-
-  bgmSearchInput.addEventListener('input', (event) => {
-    if (!currentPickerContext) return;
-    renderBangumiResults(currentPickerContext.type, event.target.value.trim());
-  });
-
-  bgmFallbackUpload.addEventListener('change', (event) => {
-    const [file] = event.target.files || [];
-    if (!file || !currentPickerContext) return;
-    previewImage(file, currentPickerContext.context.image);
-    bgmModal.close();
-  });
+  const routeImageInput = detailView.querySelector('[data-action="upload-route-image"]');
+  if (routeImageInput) {
+    routeImageInput.addEventListener('change', (event) => {
+      const [file] = event.target.files || [];
+      const routeId = event.target.dataset.routeId;
+      if (!file || !routeId) return;
+      readFileAsDataUrl(file, (result) => {
+        updateRouteField(game.id, routeId, 'image', result);
+      });
+    });
+  }
 }
 
-boot();
+function renderAll() {
+  renderLibrary();
+  renderDetail();
+}
+
+function handleCreateGame() {
+  const game = createGame();
+  games.unshift(game);
+  activeGameId = game.id;
+  activeRouteId = null;
+  renderAll();
+}
+
+function openGameDetail(gameId) {
+  activeGameId = gameId;
+  const game = findGame(gameId);
+  activeRouteId = game?.routes[0]?.id || null;
+  renderAll();
+}
+
+function closeDetail() {
+  activeGameId = null;
+  activeRouteId = null;
+  renderAll();
+  librarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function updateGameField(gameId, field, value) {
+  const game = findGame(gameId);
+  if (!game) return;
+  game[field] = value;
+  renderLibrary();
+
+  if (field === 'title') {
+    const heading = detailView.querySelector('.detail-form-panel h2');
+    if (heading) heading.textContent = value.trim() || '游戏详情';
+  }
+}
+
+function addRoute(gameId) {
+  const game = findGame(gameId);
+  if (!game) return;
+  const route = createRoute();
+  game.routes.unshift(route);
+  activeRouteId = route.id;
+  renderAll();
+}
+
+function selectRoute(gameId, routeId) {
+  activeGameId = gameId;
+  activeRouteId = routeId;
+  renderDetail();
+}
+
+function updateRouteField(gameId, routeId, field, value) {
+  const game = findGame(gameId);
+  const route = game?.routes.find((item) => item.id === routeId);
+  if (!route) return;
+  route[field] = value;
+
+  if (field === 'image') {
+    renderDetail();
+    return;
+  }
+
+  const activeHeading = detailView.querySelector('.route-detail h3');
+  if (field === 'name' && activeHeading && routeId === activeRouteId) {
+    activeHeading.textContent = value.trim() || '未命名路线';
+  }
+
+  const routeCard = detailView.querySelector(`[data-action="select-route"][data-route-id="${routeId}"]`);
+  if (routeCard) {
+    const title = routeCard.querySelector('strong');
+    const summary = routeCard.querySelector('span');
+    if (field === 'name' && title) title.textContent = value.trim() || '未命名路线';
+    if (field === 'summary' && summary) summary.textContent = value.trim() || '还没有写简介。';
+  }
+}
+
+function removeGame(gameId) {
+  const index = games.findIndex((game) => game.id === gameId);
+  if (index === -1) return;
+  games.splice(index, 1);
+  activeGameId = null;
+  activeRouteId = null;
+  renderAll();
+}
+
+addGameButton.addEventListener('click', handleCreateGame);
+heroAddGame.addEventListener('click', handleCreateGame);
+jumpToLibrary.addEventListener('click', () => {
+  librarySection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+});
+
+renderAll();
