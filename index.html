@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Otome Diary · 乙女游戏收藏站</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="background-orb orb-1"></div>
+    <div class="background-orb orb-2"></div>
+    <div class="background-orb orb-3"></div>
+
+    <main class="app-shell">
+      <section class="hero glass-card">
+        <div>
+          <p class="eyebrow">Otome Diary</p>
+          <h1>粉紫透明感乙女游戏个人站</h1>
+          <p class="hero-copy">
+            用来集中收藏你玩过的乙女游戏、封面、男主立绘、评分、CG 和对话截图。页面已经内置
+            Bangumi 搜索弹窗、自定义上传、男主线路管理、批量图片预览与评论区原型。
+          </p>
+          <div class="hero-tags">
+            <span>粉紫玻璃拟态</span>
+            <span>Bangumi 搜索选择</span>
+            <span>批量上传 + 图片评论</span>
+          </div>
+        </div>
+        <div class="profile-panel glass-inner">
+          <div class="avatar-ring">
+            <img
+              src="https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=500&q=80"
+              alt="站点头像示意"
+              id="siteAvatar"
+            />
+          </div>
+          <div>
+            <h2>你的乙女游戏档案</h2>
+            <p>在这里记录 repo、评分、路线偏爱与 CG 收藏，做成专属的恋爱游戏数据库。</p>
+          </div>
+          <div class="profile-actions">
+            <button class="secondary-button" id="pickAvatarButton" data-open-bgm data-type="avatar">从 Bangumi 选择头像</button>
+            <label class="upload-button">
+              自己上传头像
+              <input type="file" id="avatarUpload" accept="image/*" hidden />
+            </label>
+          </div>
+        </div>
+      </section>
+
+      <section class="toolbar glass-card">
+        <div>
+          <p class="eyebrow">Collection Builder</p>
+          <h2>新增游戏</h2>
+          <p>支持直接新增空白条目，或先从 Bangumi 游戏库搜索后带入封面与链接。</p>
+        </div>
+        <div class="toolbar-actions">
+          <button class="primary-button" id="addBlankGame">新增空白游戏</button>
+          <button class="secondary-button" id="addBangumiGameButton" data-open-bgm data-type="game">从 Bangumi 搜索游戏</button>
+        </div>
+      </section>
+
+      <section id="gamesContainer" class="games-grid"></section>
+    </main>
+
+    <template id="gameTemplate">
+      <article class="game-card glass-card">
+        <header class="card-header">
+          <div class="cover-wrapper">
+            <img class="game-cover" src="" alt="游戏封面" />
+            <div class="cover-actions">
+              <button class="secondary-button small" data-open-bgm data-type="game">Bangumi 换封面</button>
+              <label class="upload-button small">
+                自己上传封面
+                <input class="game-cover-upload" type="file" accept="image/*" hidden />
+              </label>
+            </div>
+          </div>
+          <div class="header-info">
+            <input class="title-input" type="text" placeholder="游戏名" />
+            <a class="bangumi-link" href="#" target="_blank" rel="noreferrer">查看 Bangumi 条目</a>
+            <div class="ranking-box glass-inner">
+              <div class="section-title-row">
+                <h3>男主好感度排序</h3>
+                <button class="secondary-button small add-character">新增男主线路</button>
+              </div>
+              <textarea class="ranking-textarea" placeholder="例：1. 笹塚尊 2. 岡崎契 3. 白石景之"></textarea>
+            </div>
+          </div>
+        </header>
+
+        <section class="ratings-section">
+          <div class="section-title-row">
+            <h3>游戏星级评分</h3>
+            <span class="muted">1~5 星</span>
+          </div>
+          <div class="ratings-grid game-ratings"></div>
+        </section>
+
+        <section class="notes-section glass-inner">
+          <div class="section-title-row">
+            <h3>整体 repo / 感想</h3>
+          </div>
+          <textarea class="note-textarea" placeholder="记录剧情体验、共通线感受、最喜欢的结局、雷点等。"></textarea>
+        </section>
+
+        <section class="routes-section">
+          <div class="section-title-row">
+            <h3>男主线路</h3>
+            <p class="muted">可任意添加，每位男主都含评分、repo、CG 与对话截图区。</p>
+          </div>
+          <div class="characters-list"></div>
+        </section>
+      </article>
+    </template>
+
+    <template id="characterTemplate">
+      <article class="character-card glass-inner">
+        <div class="character-top">
+          <div class="portrait-stack">
+            <img class="character-image" src="" alt="男主立绘" />
+            <div class="cover-actions portrait-actions">
+              <button class="secondary-button small" data-open-bgm data-type="character">Bangumi 选立绘</button>
+              <label class="upload-button small">
+                自己上传
+                <input class="character-upload" type="file" accept="image/*" hidden />
+              </label>
+            </div>
+          </div>
+          <div class="character-heading">
+            <input class="title-input character-name" type="text" placeholder="男主名 / 路线名" />
+            <a class="bangumi-link" href="#" target="_blank" rel="noreferrer">查看 Bangumi 角色条目</a>
+            <p class="muted">可以继续扩展更多线路；这里先给出可编辑卡片式结构。</p>
+          </div>
+        </div>
+
+        <div class="ratings-section">
+          <div class="section-title-row">
+            <h4>男主星级评分</h4>
+            <span class="muted">综合、剧情、感情、文笔、人设、趣味性、深度</span>
+          </div>
+          <div class="ratings-grid character-ratings"></div>
+        </div>
+
+        <div class="notes-section">
+          <div class="section-title-row">
+            <h4>男主评价区 / repo</h4>
+          </div>
+          <textarea class="note-textarea" placeholder="记录好感点、糖刀比例、个人名场面、线内冲突与结局感受。"></textarea>
+        </div>
+
+        <div class="gallery-grid">
+          <section class="gallery-panel glass-card-soft">
+            <div class="section-title-row">
+              <h4>CG 上传区</h4>
+              <label class="upload-button small">
+                批量上传 CG
+                <input class="cg-upload" type="file" accept="image/*" multiple hidden />
+              </label>
+            </div>
+            <div class="gallery-list cg-list empty-state">上传后会显示缩略图，并支持单张评论。</div>
+          </section>
+
+          <section class="gallery-panel glass-card-soft">
+            <div class="section-title-row">
+              <h4>对话截图上传区</h4>
+              <label class="upload-button small">
+                批量上传对话图
+                <input class="dialogue-upload" type="file" accept="image/*" multiple hidden />
+              </label>
+            </div>
+            <div class="gallery-list dialogue-list empty-state">上传后会显示缩略图，并支持单张评论。</div>
+          </section>
+        </div>
+      </article>
+    </template>
+
+    <dialog id="bgmModal" class="bgm-modal">
+      <form method="dialog" class="bgm-panel glass-card">
+        <div class="section-title-row">
+          <div>
+            <p class="eyebrow">Bangumi Picker</p>
+            <h3 id="modalTitle">选择条目</h3>
+          </div>
+          <button class="icon-button" value="cancel">✕</button>
+        </div>
+
+        <div class="search-row">
+          <input id="bgmSearchInput" type="search" placeholder="输入游戏名或角色名进行筛选" />
+          <a id="bgmSearchLink" class="secondary-button" href="https://bgm.tv" target="_blank" rel="noreferrer">打开 Bangumi 搜索</a>
+        </div>
+
+        <div class="picker-tabs">
+          <button type="button" class="tab-button active" data-source="bangumi">Bangumi 搜索结果</button>
+          <button type="button" class="tab-button" data-source="upload">自己上传图片</button>
+        </div>
+
+        <div id="bgmResults" class="bgm-results"></div>
+
+        <div id="uploadFallback" class="upload-fallback hidden glass-inner">
+          <p>如果没有合适条目，可以直接在这里上传图片，不需要填写任何链接。</p>
+          <label class="upload-button">
+            选择图片
+            <input id="bgmFallbackUpload" type="file" accept="image/*" hidden />
+          </label>
+        </div>
+      </form>
+    </dialog>
+
+    <script src="script.js"></script>
+  </body>
+</html>
